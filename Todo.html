@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Todo App</title>
+  <!-- React CDNs -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const FILTERS = ["All", "Active", "Done"];
+    const COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF", "#FF9A3C"];
+
+    function TodoApp() {
+      const [todos, setTodos] = useState([
+        { id: 1, text: "Design something beautiful", done: true, color: "#4D96FF" },
+        { id: 2, text: "Ship the feature", done: false, color: "#6BCB77" },
+        { id: 3, text: "Take a break", done: false, color: "#FFD93D" },
+      ]);
+      const [input, setInput] = useState("");
+      const [filter, setFilter] = useState("All");
+      const [pickedColor, setPickedColor] = useState(COLORS[0]);
+      const [editId, setEditId] = useState(null);
+      const [editText, setEditText] = useState("");
+      const inputRef = useRef(null);
+
+      const filtered = todos.filter((t) => {
+        if (filter === "Active") return !t.done;
+        if (filter === "Done") return t.done;
+        return true;
+      });
+
+      const addTodo = () => {
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        setTodos([
+          ...todos,
+          { id: Date.now(), text: trimmed, done: false, color: pickedColor },
+        ]);
+        setInput("");
+        inputRef.current?.focus();
+      };
+
+      const toggle = (id) =>
+        setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+
+      const remove = (id) => setTodos(todos.filter((t) => t.id !== id));
+
+      const startEdit = (todo) => {
+        setEditId(todo.id);
+        setEditText(todo.text);
+      };
+
+      const saveEdit = (id) => {
+        setTodos(todos.map((t) => (t.id === id ? { ...t, text: editText } : t)));
+        setEditId(null);
+      };
+
+      const clearDone = () => setTodos(todos.filter((t) => !t.done));
+
+      const activeCount = todos.filter((t) => !t.done).length;
+
+      return (
+        <div style={{
+          minHeight: "100vh",
+          background: "#0d0d0d",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'Courier New', monospace",
+          padding: "24px",
+        }}>
+          <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+
+            .app-card {
+              width: 100%;
+              max-width: 520px;
+              background: #111;
+              border: 2px solid #222;
+              border-radius: 4px;
+              overflow: hidden;
+            }
+
+            .app-header {
+              padding: 32px 32px 20px;
+              border-bottom: 1px solid #222;
+              position: relative;
+            }
+
+            .app-title {
+              font-family: 'Bebas Neue', sans-serif;
+              font-size: 64px;
+              letter-spacing: 4px;
+              color: #fff;
+              line-height: 1;
+            }
+
+            .app-subtitle {
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              color: #555;
+              letter-spacing: 3px;
+              margin-top: 6px;
+              text-transform: uppercase;
+            }
+
+            .count-badge {
+              position: absolute;
+              top: 32px;
+              right: 32px;
+              font-family: 'Bebas Neue', sans-serif;
+              font-size: 48px;
+              color: #222;
+              letter-spacing: 2px;
+            }
+
+            .input-section {
+              padding: 20px 32px;
+              border-bottom: 1px solid #222;
+            }
+
+            .color-row {
+              display: flex;
+              gap: 8px;
+              margin-bottom: 12px;
+            }
+
+            .color-dot {
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              cursor: pointer;
+              border: 2px solid transparent;
+              transition: transform 0.15s, border-color 0.15s;
+              flex-shrink: 0;
+            }
+
+            .color-dot:hover { transform: scale(1.3); }
+            .color-dot.selected { border-color: #fff; transform: scale(1.25); }
+
+            .input-row {
+              display: flex;
+              gap: 10px;
+            }
+
+            .todo-input {
+              flex: 1;
+              background: #000;
+              border: 1px solid #333;
+              border-radius: 2px;
+              padding: 10px 14px;
+              font-family: 'Space Mono', monospace;
+              font-size: 13px;
+              color: #fff;
+              outline: none;
+              transition: border-color 0.2s;
+            }
+
+            .todo-input::placeholder { color: #444; }
+            .todo-input:focus { border-color: #555; }
+
+            .add-btn {
+              background: #fff;
+              color: #000;
+              border: none;
+              border-radius: 2px;
+              padding: 10px 20px;
+              font-family: 'Bebas Neue', sans-serif;
+              font-size: 16px;
+              letter-spacing: 2px;
+              cursor: pointer;
+              transition: background 0.15s, transform 0.1s;
+              white-space: nowrap;
+            }
+
+            .add-btn:hover { background: #ddd; }
+            .add-btn:active { transform: scale(0.97); }
+
+            .filter-row {
+              display: flex;
+              padding: 0 32px;
+              border-bottom: 1px solid #222;
+            }
+
+            .filter-btn {
+              background: none;
+              border: none;
+              border-bottom: 2px solid transparent;
+              color: #444;
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              letter-spacing: 2px;
+              text-transform: uppercase;
+              padding: 12px 0;
+              margin-right: 24px;
+              cursor: pointer;
+              transition: color 0.15s, border-color 0.15s;
+            }
+
+            .filter-btn:hover { color: #888; }
+            .filter-btn.active { color: #fff; border-bottom-color: #fff; }
+
+            .todo-list {
+              list-style: none;
+              max-height: 360px;
+              overflow-y: auto;
+            }
+
+            .todo-list::-webkit-scrollbar { width: 4px; }
+            .todo-list::-webkit-scrollbar-track { background: #111; }
+            .todo-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+            .todo-item {
+              display: flex;
+              align-items: center;
+              gap: 14px;
+              padding: 14px 32px;
+              border-bottom: 1px solid #1a1a1a;
+              transition: background 0.15s;
+              animation: fadeIn 0.2s ease;
+            }
+
+            .todo-item:hover { background: #161616; }
+            .todo-item:last-child { border-bottom: none; }
+
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(-6px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+
+            .todo-color-bar {
+              width: 3px;
+              height: 32px;
+              border-radius: 2px;
+              flex-shrink: 0;
+            }
+
+            .todo-check {
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              border: 1.5px solid #444;
+              flex-shrink: 0;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: border-color 0.15s, background 0.15s;
+              position: relative;
+            }
+
+            .todo-check.checked {
+              border-color: #fff;
+              background: #fff;
+            }
+
+            .todo-check.checked::after {
+              content: '';
+              width: 5px;
+              height: 9px;
+              border: 2px solid #000;
+              border-top: none;
+              border-left: none;
+              transform: rotate(45deg) translate(-1px, -1px);
+            }
+
+            .todo-text {
+              flex: 1;
+              font-family: 'Space Mono', monospace;
+              font-size: 13px;
+              color: #ccc;
+              line-height: 1.4;
+              transition: color 0.2s;
+              word-break: break-word;
+            }
+
+            .todo-text.done {
+              color: #444;
+              text-decoration: line-through;
+              text-decoration-color: #333;
+            }
+
+            .edit-input {
+              flex: 1;
+              background: #000;
+              border: 1px solid #555;
+              border-radius: 2px;
+              padding: 4px 8px;
+              font-family: 'Space Mono', monospace;
+              font-size: 13px;
+              color: #fff;
+              outline: none;
+            }
+
+            .icon-btn {
+              background: none;
+              border: none;
+              color: #333;
+              cursor: pointer;
+              font-size: 14px;
+              padding: 4px;
+              border-radius: 2px;
+              transition: color 0.15s;
+              line-height: 1;
+            }
+
+            .icon-btn:hover { color: #888; }
+            .icon-btn.delete:hover { color: #FF6B6B; }
+            .icon-btn.save:hover { color: #6BCB77; }
+
+            .footer {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 14px 32px;
+              border-top: 1px solid #222;
+            }
+
+            .footer-text {
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              color: #444;
+              letter-spacing: 1px;
+            }
+
+            .clear-btn {
+              background: none;
+              border: none;
+              font-family: 'Space Mono', monospace;
+              font-size: 11px;
+              color: #444;
+              cursor: pointer;
+              text-decoration: underline;
+              text-underline-offset: 3px;
+              letter-spacing: 1px;
+              transition: color 0.15s;
+            }
+
+            .clear-btn:hover { color: #FF6B6B; }
+
+            .empty-state {
+              padding: 48px 32px;
+              text-align: center;
+              font-family: 'Space Mono', monospace;
+              font-size: 12px;
+              color: #333;
+              letter-spacing: 2px;
+            }
+          `}</style>
+
+          <div className="app-card">
+            {/* Header */}
+            <div className="app-header">
+              <div className="app-title">TODO</div>
+              <div className="app-subtitle">Get things done.</div>
+              <div className="count-badge">{String(activeCount).padStart(2, "0")}</div>
+            </div>
+
+            {/* Input */}
+            <div className="input-section">
+              <div className="color-row">
+                {COLORS.map((c) => (
+                  <div
+                    key={c}
+                    className={`color-dot${pickedColor === c ? " selected" : ""}`}
+                    style={{ background: c }}
+                    onClick={() => setPickedColor(c)}
+                  />
+                ))}
+              </div>
+              <div className="input-row">
+                <input
+                  ref={inputRef}
+                  className="todo-input"
+                  placeholder="What needs to be done?"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addTodo()}
+                />
+                <button className="add-btn" onClick={addTodo}>ADD</button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="filter-row">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  className={`filter-btn${filter === f ? " active" : ""}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {/* List */}
+            {filtered.length === 0 ? (
+              <div className="empty-state">— nothing here —</div>
+            ) : (
+              <ul className="todo-list">
+                {filtered.map((todo) => (
+                  <li key={todo.id} className="todo-item">
+                    <div className="todo-color-bar" style={{ background: todo.color }} />
+                    <div
+                      className={`todo-check${todo.done ? " checked" : ""}`}
+                      onClick={() => toggle(todo.id)}
+                    />
+                    {editId === todo.id ? (
+                      <React.Fragment>
+                        <input
+                          className="edit-input"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit(todo.id);
+                            if (e.key === "Escape") setEditId(null);
+                          }}
+                          autoFocus
+                        />
+                        <button className="icon-btn save" onClick={() => saveEdit(todo.id)} title="Save">✓</button>
+                        <button className="icon-btn" onClick={() => setEditId(null)} title="Cancel">✕</button>
+                      </React.Fragment>
+                    ) : (
+                      <React.Fragment>
+                        <span className={`todo-text${todo.done ? " done" : ""}`}>{todo.text}</span>
+                        <button className="icon-btn" onClick={() => startEdit(todo)} title="Edit">✎</button>
+                        <button className="icon-btn delete" onClick={() => remove(todo.id)} title="Delete">✕</button>
+                      </React.Fragment>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Footer */}
+            <div className="footer">
+              <span className="footer-text">{activeCount} task{activeCount !== 1 ? "s" : ""} remaining</span>
+              {todos.some((t) => t.done) && (
+                <button className="clear-btn" onClick={clearDone}>clear done</button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<TodoApp />);
+  </script>
+</body>
+</html>
